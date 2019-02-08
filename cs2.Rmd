@@ -1,0 +1,58 @@
+---
+title: '"casestudy2'
+author: "Daniel M. Turner"
+date: "February 8, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+#load and prep data
+library(readxl)
+
+cs2 <- read_excel("C:\\Users\\DMT\\Documents\\masters\\semester1\\dds402\\CaseStudy2_2_2_2_2\\CaseStudy2-data.xlsx")
+
+cs2a = cs2
+
+cs2a$Attrition[cs2a$Attrition== "Yes"]<- 1
+cs2a$Attrition[cs2a$Attrition== "No"]<- 0
+cs2a$Attrition <- as.numeric(cs2a$Attrition)
+
+cs2a$BusinessTravel[cs2a$BusinessTravel== "Non-Travel"]<- 0
+cs2a$BusinessTravel[cs2a$BusinessTravel== "Travel_Rarely"]<- 1
+cs2a$BusinessTravel[cs2a$BusinessTravel== "Travel_Frequently"]<- 2
+cs2a$BusinessTravel <- as.numeric(cs2a$BusinessTravel)
+
+cs2a$MaritalStatus[cs2a$MaritalStatus== "Single"]<- 0
+cs2a$MaritalStatus[cs2a$MaritalStatus== "Married"]<- 1
+cs2a$MaritalStatus[cs2a$MaritalStatus== "Divorced"]<- -1
+cs2a$MaritalStatus <- as.numeric(cs2a$MaritalStatus)
+
+cs2a$OverTime[cs2a$OverTime== "Yes"]<- 1
+cs2a$OverTime[cs2a$OverTime== "No"]<- 0
+cs2a$OverTime <- as.numeric(cs2a$OverTime)
+
+cs2a$Gender[cs2a$Gender== "Male"]<- 0
+cs2a$Gender[cs2a$Gender== "Female"]<- 1
+cs2a$Gender <- as.numeric(cs2a$Gender)
+
+
+drops <- c("Department","EducationField","JobRole","Over18")
+cs2a <- cs2a[ , !(names(cs2a) %in% drops)]
+
+```
+
+```{r}
+##test correlation
+BaseCor = cor(cs2a$Attrition, cs2a[1:length(cs2a)])
+
+##lists index of top values. first is data correlated to itself so ignore
+top <- order(-abs(BaseCor))
+top
+BaseCor[top]
+```
