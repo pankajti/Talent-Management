@@ -3,6 +3,9 @@ title: '"casestudy2'
 author: "Daniel M. Turner"
 date: "February 8, 2019"
 output: html_document
+params: 
+  path: 'Analysis/Data/CaseStudy2-data.xlsx'
+  echo: FALSE
 ---
 
 ```{r setup, include=FALSE}
@@ -15,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #load and prep data
 library(readxl)
 
-cs2 <- read_excel("C:\\Users\\DMT\\Documents\\masters\\semester1\\dds402\\CaseStudy2_2_2_2_2\\CaseStudy2-data.xlsx")
+cs2 <- read_excel(params$path)
 
 cs2a = cs2
 
@@ -56,3 +59,4 @@ top <- order(-abs(BaseCor))
 top
 BaseCor[top]
 ```
+

@@ -1,4 +1,6 @@
 .log
-.log
+*.log
 .Rproj.user
 .Rproj
+*.RData
+*.Rhistory
