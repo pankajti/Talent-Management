@@ -12,203 +12,54 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-```{r}
-
 library(tidyverse)
+library(plyr)
 job_data=readxl::read_excel(params$path)
 job_data=job_data[job_data$Over18=='Y',]
-
-```
-
-
-## check % of male vs female who did attrition
-
-```{r}
-
 grouped_data=group_by(job_data, Gender, Attrition) %>%
   summarise(count=n()) %>%
   mutate(perc= count)
-library(plyr)
-
-```
-
-
-# check impact of gender 
-
-```{r echo = params$echo}
-
-ce =ddply(grouped_data , "Attrition" , 
-      transform, percentage_weight = count/sum(count))
-
-ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= Gender))+
-  geom_bar(stat="identity")
-
-```
-
-## check impact of JobInvolvement 
-```{r echo = params$echo}
-
-job_involvement_grouped_data=dplyr::group_by(job_data, JobInvolvement, Attrition) %>%
-  dplyr::summarise(count=n())  
-
-ce =ddply(job_involvement_grouped_data , "Attrition" , 
-          transform, percentage_weight = count/sum(count))
-
-ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= JobInvolvement))+
-  geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-  
-```
-
-## check impact of business travel 
-
-```{r echo = params$echo}
-  
-
-business_travel_grouped_data=dplyr::group_by(job_data, BusinessTravel, Attrition) %>%
-    dplyr::summarise(count=n())  
-  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= BusinessTravel))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-
-## check impact of Department
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, Department, Attrition) %>%
+draw_graph <- function(job_data, aa) {
+  quo_group  <- sym(aa)
+  business_travel_grouped_data=dplyr::group_by(job_data, !!quo_group, Attrition) %>%
     dplyr::summarise(count=n())  
   ce =ddply(business_travel_grouped_data , "Attrition" , 
             transform, percentage_weight = count/sum(count))
-  
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= Department))+
+  graph <- ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= !!quo_group))+
     geom_bar(stat="identity")
   geom_text((aes(label=percentage_weight)))
+  graph
+}
+
 ```
 
 
-## check impact of EducationField
+# check impact of different categorical variables  
 
 ```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, EducationField, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= EducationField))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
+draw_graph(job_data,"Education")
+draw_graph(job_data,"EducationField")
+draw_graph(job_data,"EnvironmentSatisfaction")
+draw_graph(job_data,"Gender")
+draw_graph(job_data,"JobInvolvement")
+draw_graph(job_data,"JobLevel")
+draw_graph(job_data,"JobRole")
+draw_graph(job_data,"JobSatisfaction")
+draw_graph(job_data,"MaritalStatus")
+draw_graph(job_data,"MonthlyRate")
+draw_graph(job_data,"NumCompaniesWorked")
+draw_graph(job_data,"OverTime")
+draw_graph(job_data,"PerformanceRating")
+draw_graph(job_data,"RelationshipSatisfaction")
+draw_graph(job_data,"StandardHours")
+draw_graph(job_data,"StockOptionLevel")
+draw_graph(job_data,"TotalWorkingYears")
+draw_graph(job_data,"TrainingTimesLastYear")
+draw_graph(job_data,"WorkLifeBalance")
+draw_graph(job_data,"YearsAtCompany")
+draw_graph(job_data,"YearsInCurrentRole")
+draw_graph(job_data,"YearsSinceLastPromotion")
+draw_graph(job_data,"YearsWithCurrManager")
+
 ```
-
-## check impact of OverTime
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, OverTime, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= OverTime))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of JobSatisfaction
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, JobSatisfaction, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= JobSatisfaction))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of StockOptionLevel
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, StockOptionLevel, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= StockOptionLevel))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of JobRole
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, JobRole, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= JobRole))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of EnvironmentSatisfaction
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, EnvironmentSatisfaction, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= EnvironmentSatisfaction))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of JobSatisfaction
-
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, JobSatisfaction, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= JobSatisfaction))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of JobSatisfaction
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, JobSatisfaction, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= JobSatisfaction))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of RelationshipSatisfaction
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, JobSatisfaction, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= JobSatisfaction))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-## check impact of YearsWithCurrManager
-```{r echo = params$echo}
-business_travel_grouped_data=dplyr::group_by(job_data, YearsWithCurrManager, Attrition) %>%
-    dplyr::summarise(count=n())  
-  ce =ddply(business_travel_grouped_data , "Attrition" , 
-            transform, percentage_weight = count/sum(count))
-  ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= YearsWithCurrManager))+
-    geom_bar(stat="identity")
-  geom_text((aes(label=percentage_weight)))
-```
-
-
+ 
