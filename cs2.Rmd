@@ -17,11 +17,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 #load and prep data
 library(readxl)
-
 cs2 <- read_excel(params$path)
-
 cs2a = cs2
-
 cs2a$Attrition[cs2a$Attrition== "Yes"]<- 1
 cs2a$Attrition[cs2a$Attrition== "No"]<- 0
 cs2a$Attrition <- as.numeric(cs2a$Attrition)

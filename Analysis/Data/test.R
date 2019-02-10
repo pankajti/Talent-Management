@@ -5,3 +5,7 @@ test
 
 ggplot(data=test)+
   geom_bar(mapping= aes(y=height, x= weight), stat="identity")
+
+
+
+

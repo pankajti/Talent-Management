@@ -9,16 +9,12 @@ params:
 ---
 
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(plyr)
 job_data=readxl::read_excel(params$path)
 job_data=job_data[job_data$Over18=='Y',]
-grouped_data=group_by(job_data, Gender, Attrition) %>%
-  summarise(count=n()) %>%
-  mutate(perc= count)
 draw_graph <- function(job_data, aa) {
   quo_group  <- sym(aa)
   business_travel_grouped_data=dplyr::group_by(job_data, !!quo_group, Attrition) %>%
@@ -30,16 +26,17 @@ draw_graph <- function(job_data, aa) {
   geom_text((aes(label=percentage_weight)))
   graph
 }
-
 ```
 
 
 # check impact of different categorical variables  
 
 ```{r echo = params$echo}
+# somehow looping is not working 
 draw_graph(job_data,"Education")
 draw_graph(job_data,"EducationField")
 draw_graph(job_data,"EnvironmentSatisfaction")
+draw_graph(job_data,"TrainingTimesLastYear")
 draw_graph(job_data,"Gender")
 draw_graph(job_data,"JobInvolvement")
 draw_graph(job_data,"JobLevel")
@@ -60,6 +57,5 @@ draw_graph(job_data,"YearsAtCompany")
 draw_graph(job_data,"YearsInCurrentRole")
 draw_graph(job_data,"YearsSinceLastPromotion")
 draw_graph(job_data,"YearsWithCurrManager")
-
 ```
- 
+
