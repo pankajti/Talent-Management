@@ -15,7 +15,7 @@ library(tidyverse)
 library(plyr)
 job_data=readxl::read_excel(params$path)
 job_data=job_data[job_data$Over18=='Y',]
-draw_graph <- function(job_data, aa) {
+draw_weight_graph <- function(job_data, aa) {
   quo_group  <- sym(aa)
   business_travel_grouped_data=dplyr::group_by(job_data, !!quo_group, Attrition) %>%
     dplyr::summarise(count=n())  
@@ -24,38 +24,37 @@ draw_graph <- function(job_data, aa) {
   graph <- ggplot(ce, aes(x=Attrition, y=percentage_weight, fill= !!quo_group))+
     geom_bar(stat="identity")
   geom_text((aes(label=percentage_weight)))
+  graphs =c ( graph, 
+  ggplot(job_data, aes(y=!!quo_group, x = Attrition))+ geom_boxplot(), 
+  ggplot(job_data, aes(x=!!quo_group, color = Attrition))+ geom_density() ) 
   graph
+  
+}
+
+draw_box_plot_graph <- function(job_data, aa) {
+  quo_group  <- sym(aa)
+  ggplot(job_data, aes(y=!!quo_group, x = Attrition))+ geom_boxplot()
+
+}
+
+draw_density_graph <- function(job_data, aa) {
+  quo_group  <- sym(aa)
+  ggplot(job_data, aes(x=!!quo_group, color = Attrition))+ geom_density() 
 }
 ```
 
 
 # check impact of different categorical variables  
+```{r}
+col_names = names(job_data)
 
-```{r echo = params$echo}
-# somehow looping is not working 
-draw_graph(job_data,"Education")
-draw_graph(job_data,"EducationField")
-draw_graph(job_data,"EnvironmentSatisfaction")
-draw_graph(job_data,"TrainingTimesLastYear")
-draw_graph(job_data,"Gender")
-draw_graph(job_data,"JobInvolvement")
-draw_graph(job_data,"JobLevel")
-draw_graph(job_data,"JobRole")
-draw_graph(job_data,"JobSatisfaction")
-draw_graph(job_data,"MaritalStatus")
-draw_graph(job_data,"MonthlyRate")
-draw_graph(job_data,"NumCompaniesWorked")
-draw_graph(job_data,"OverTime")
-draw_graph(job_data,"PerformanceRating")
-draw_graph(job_data,"RelationshipSatisfaction")
-draw_graph(job_data,"StandardHours")
-draw_graph(job_data,"StockOptionLevel")
-draw_graph(job_data,"TotalWorkingYears")
-draw_graph(job_data,"TrainingTimesLastYear")
-draw_graph(job_data,"WorkLifeBalance")
-draw_graph(job_data,"YearsAtCompany")
-draw_graph(job_data,"YearsInCurrentRole")
-draw_graph(job_data,"YearsSinceLastPromotion")
-draw_graph(job_data,"YearsWithCurrManager")
+for (col_name in col_names){
+  print(draw_box_plot_graph( job_data, col_name))
+    print(draw_density_graph( job_data, col_name))
+  print(draw_weight_graph( job_data, col_name))
+
+ 
+}
+  
 ```
 
