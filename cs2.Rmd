@@ -58,6 +58,30 @@ bottom <- order(BaseCor)##identify fields starting with negative correlation
 BaseCor[top]
 BaseCor[bottom]
 
+##clean data and take log.  re check correlations
+logCor <- cs2a[1:length(cs2a)]
+logCor$Attrition = NULL
+logCor$BusinessTravel = NULL
+logCor$Gender = NULL
+logCor$MaritalStatus=NULL
+logCor$OverTime=NULL
+logCor$Education=NULL
+logCor$EnvironmentSatisfaction=NULL
+logCor$JobInvolvement=NULL
+logCor$JobLevel=NULL
+logCor$JobSatisfaction=NULL
+logCor$RelationshipSatisfaction=NULL
+logCor$StockOptionLevel=NULL
+logCor$WorkLifeBalance=NULL
+logCor$TrainingTimesLastYear=NULL
+logCor$PerformanceRating=NULL
+
+logCor <- log(logCor)
+logCor = data.frame(cor(cs2a$Attrition, logCor[1:length(logCor)]))
+
+##age up. dailyrate down. distance down. hourly down. monthlyincome up. rate down
+##salary hike up
+
 ```
 
 ```{r}
