@@ -5,6 +5,7 @@ job_data=readxl::read_excel('./Analysis/Data/CaseStudy2-data.xlsx')
 ggplot(data=job_data , aes(x=Attrition) )+
   geom_bar( mapping=aes( fill= BusinessTravel)) +
   geom_text(stat='count',aes(label=..count..), position = position_stack(vjust=.5), vjust=-1)
+
 head(job_data)
 
 
@@ -13,6 +14,21 @@ p = ggplot(data=job_data , aes(x=Attrition) )
 ggplot(data=job_data)+
   geom_bar(mapping=aes(x= JobInvolvement, y= MonthlyIncome , fill= Gender), 
            stat="identity")
+
+names(job_data)
+
+job_data_num=dplyr::select_if(job_data, is.numeric)
+
+job_data_mat=as.matrix(job_data_num[c('Age', 'MonthlyRate') ])
+
+heatmap(job_data_mat, na.rm = TRUE, scale="column")
+library(corrplot)
+
+cor(job_data_num, method = c("pearson"))
+
+
+aa= sapply(job_data, class)
+aa[1]
 
 ggplot(data=job_data)+
   geom_bar(mapping=aes(x= JobRole, y= MonthlyIncome , fill= Gender), 

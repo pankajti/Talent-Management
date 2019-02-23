@@ -50,10 +50,8 @@ col_names = names(job_data)
 
 for (col_name in col_names){
   print(draw_box_plot_graph( job_data, col_name))
-    print(draw_density_graph( job_data, col_name))
+  print(draw_density_graph( job_data, col_name))
   print(draw_weight_graph( job_data, col_name))
-
- 
 }
   
 ```
