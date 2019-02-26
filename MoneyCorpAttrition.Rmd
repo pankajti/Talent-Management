@@ -1,0 +1,460 @@
+---
+title: "Money Corp Attrition Analysis"
+author: "Daniel Turner, Pankaj Kumar, Kay Ayala"
+date: "Febuary 2019"
+output:
+  html_document:  
+    toc: true    
+    theme: united 
+params: 
+  path: 'Data/CaseStudy2-data.xlsx'
+  echo: True
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(params$echo)
+```
+
+
+###Data Import
+The data is loaded from an excel spreadsheet in the project files. 
+
+``` {r Data Import}
+library(ggplot2)
+
+job_data_original=readxl::read_excel(params$path)
+
+#print(str(job_data))
+#print(head(job_data))
+```
+
+###Data Cleaning
+The categorical data is dummy coded. New smaller data sets are created for plotting and model building.  
+
+```{r Data Cleaning }
+
+job_data = subset(job_data_original,
+                  select = -c(Department,EducationField,EmployeeCount, 
+                              EmployeeNumber, JobRole, Over18, StandardHours))
+
+job_data$Attrition[job_data$Attrition== "Yes"]<- 1
+job_data$Attrition[job_data$Attrition== "No"]<- 0
+job_data$Attrition <- as.numeric(job_data$Attrition)
+
+job_data$BusinessTravel[job_data$BusinessTravel== "Non-Travel"]<- 0
+job_data$BusinessTravel[job_data$BusinessTravel== "Travel_Rarely"]<- 1
+job_data$BusinessTravel[job_data$BusinessTravel== "Travel_Frequently"]<- 2
+job_data$BusinessTravel <- as.numeric(job_data$BusinessTravel)
+
+job_data$MaritalStatus[job_data$MaritalStatus== "Single"]<- 1
+job_data$MaritalStatus[job_data$MaritalStatus== "Married"]<- 2
+job_data$MaritalStatus[job_data$MaritalStatus== "Divorced"]<- 0
+job_data$MaritalStatus <- as.numeric(job_data$MaritalStatus)
+
+job_data$OverTime[job_data$OverTime== "Yes"]<- 1
+job_data$OverTime[job_data$OverTime== "No"]<- 0
+job_data$OverTime <- as.numeric(job_data$OverTime)
+
+job_data$Gender[job_data$Gender== "Male"]<- 0
+job_data$Gender[job_data$Gender== "Female"]<- 1
+job_data$Gender <- as.numeric(job_data$Gender)
+job_data = job_data + 0.000001
+#str(job_data)
+
+
+### Building Data Subsets
+
+### Log Transformating Data
+XValues = subset(job_data, select = -c(Attrition)) 
+XLogged = log(XValues)
+YLogged = log(job_data$Attrition)
+Attrition = job_data$Attrition
+LogAttrition = log(job_data$Attrition)
+
+onlyXLogged = data.frame(Attrition, XLogged) #Data: all features logged except Attrition
+onlyYLogged = data.frame(YLogged, XValues) #Data: only Attrition logged
+XandYLogged = log(job_data) #Data: all features logged including Attrition
+
+### Data With Highest Overall Correlations
+
+high_corr_features = subset(onlyXLogged,
+                              select = c(JobLevel, 
+                                         TotalWorkingYears, 
+                                         Age, 
+                                         YearsWithCurrManager, 
+                                         YearsAtCompany, 
+                                         YearsInCurrentRole, 
+                                         YearsSinceLastPromotion, 
+                                         MonthlyIncome,
+                                         PercentSalaryHike,
+                                         PerformanceRating)) 
+
+### Reduced X Logged Dataset
+
+top_5_features = subset(job_data,
+                        select = c(Attrition, OverTime, 
+                                   YearsWithCurrManager, MonthlyIncome,
+                                   StockOptionLevel, JobLevel))
+top_3_features = subset(job_data,
+                        select = c(Attrition, OverTime, 
+                                   YearsWithCurrManager, MonthlyIncome))
+top_5_features_logged = subset(onlyXLogged,
+                        select = c(Attrition, OverTime, 
+                                   YearsWithCurrManager, MonthlyIncome,
+                                   StockOptionLevel, JobLevel))
+top_3_features_logged = subset(onlyXLogged,
+                        select = c(Attrition, OverTime, 
+                                   YearsWithCurrManager, MonthlyIncome))
+top_5_positive_logged = subset(onlyXLogged,
+                        select = c(Attrition, YearsWithCurrManager,
+                                   MonthlyIncome, StockOptionLevel, 
+                                   JobLevel, Age))
+top_5_negative_logged = subset(onlyXLogged,
+                        select = c(Attrition,OverTime,
+                                   BusinessTravel,MaritalStatus,
+                                   DistanceFromHome, NumCompaniesWorked))
+```
+
+
+### Functionizing Heatmap
+This makes a heat map of correlations between features. 
+```{r Functionizing Heatmap }
+# Using:
+# http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
+
+library(reshape2)
+
+heatmap_prep <- function(dataframe){
+  
+    cormat <- round(cor(dataframe),2)
+    melted_cormat <- melt(cormat)
+    
+    # Get lower triangle of the correlation matrix
+    get_lower_tri<-function(cormat){
+      cormat[upper.tri(cormat)] <- NA
+      return(cormat)
+    }
+    # Get upper triangle of the correlation matrix
+    get_upper_tri <- function(cormat){
+      cormat[lower.tri(cormat)]<- NA
+      return(cormat)
+    }
+    
+    upper_tri <- get_upper_tri(cormat)
+    
+    # Melt the correlation matrix
+    melted_cormat <- melt(upper_tri, na.rm = TRUE)
+    
+    # Reorder the correlation matrix
+    reorder_cormat <- function(cormat){
+      # Use correlation between features as distance
+      dd <- as.dist((1-cormat)/2)
+      hc <- hclust(dd)
+      cormat <-cormat[hc$order, hc$order]
+    }
+    
+    cormat <- reorder_cormat(cormat)
+    upper_tri <- get_upper_tri(cormat)
+    
+    # Melt the correlation matrix
+    melted_cormat <- melt(upper_tri, na.rm = TRUE)
+}
+
+make_heatmap <- function(melted_cormat, plot_header, angled_text_size = 12){
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "#f2be54", high = "#153e5c", mid = "#cdd4ca", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+    name="Pearson\nCorrelation") +
+  theme_minimal()+ # minimal theme
+ theme(axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = angled_text_size, hjust = 1))+
+  ggtitle(label = plot_header)+
+ coord_fixed()
+}
+
+make_text_heatmap <- function(ggheatmap, coeff_text_size = 2.5)
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = value), color = "black", size = coeff_text_size) + 
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+
+heatmap_builder <- function(dataframe, plot_header, angled_text_size, coeff_text_size){
+    melted_cormat = heatmap_prep(dataframe)
+    ggheatmap = make_heatmap(melted_cormat, plot_header, angled_text_size)
+    make_text_heatmap(ggheatmap, coeff_text_size)
+}
+
+```
+
+### Function for Half Scatter plot, Half Correlation 
+This is a function used later in a plot. It makes correlations. 
+```{r Scatter Plots}
+#using:
+#https://rdrr.io/r/graphics/pairs.html
+
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 0.99/strwidth(txt) # The number in row larger = larger correlation text
+  text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+#pairs(job_data[1:7], lower.panel = panel.smooth, upper.panel = panel.cor,
+#      gap=0, row1attop=FALSE)
+
+```
+
+### Function for Finding Top n Correlations
+This function finds the top n (however many you want) correlations between given variables.
+```{r Correlation Functionizing}
+
+getTopNCorrelation<- function(Y,X,n = 5){
+    corrs = data.frame(cor(Y, X))
+    corrs$Attrition = NULL
+    corrs$YLogged = NULL
+    absolutecorrs= abs(corrs)
+    
+    ##lists index of top values. first is data correlated to itself so removed
+    top_abs <- order(-absolutecorrs)
+    top <- order(-corrs)##identify fields starting with positive correlation
+    bottom <- order(corrs)##identify fields starting with negative correlation
+    
+    cat("Highest Absolute Value", n, "Correlations \n")
+    print(absolutecorrs[top_abs[1:n]])
+    cat("\n Top", n, "Postive Correlations \n")
+    print(corrs[top[1:n]])
+    cat("\n Top", n, "Negative Correlations \n")
+    print(corrs[bottom[1:n]])
+    
+}
+```
+
+### Function for Test Train Split
+This function returns a list containing two dataframes. One is a training set. The other is a test set. 
+```{r Test Train Split}
+#Using:
+#http://www.gettinggeneticsdone.com/2011/02/split-data-frame-into-testing-and.html
+
+splitdf <- function(dataframe, seed=NULL, train_size=0.8) {
+    if (!is.null(seed)) set.seed(seed)
+    index <- 1:nrow(dataframe)
+    trainindex <- sample(index, trunc(length(index)*train_size))
+    trainset <- dataframe[trainindex, ]
+    testset <- dataframe[-trainindex, ]
+    list(trainset=trainset,testset=testset)
+}
+
+```
+
+## Exploring the Data
+
+### Investigating Job Role
+The first graph shows the relationships between Attrition, Monthly Income, and Job Role. The second graph shows the relationships between Environment Satisfaction, Monthly Income and JobRole.  
+```{r Job Role}
+ggplot(data=job_data_original)+
+  geom_bar(mapping=aes(x= JobRole, y= MonthlyIncome , fill= Attrition), 
+           stat="summary", fun.y="median")+
+  theme(axis.text.x = element_text(angle = 90) ) +
+  labs(title= "Effects of Attrition on Job Role v.s. Median Monthly Income")
+
+
+ggplot(job_data_original, aes(x=EnvironmentSatisfaction, y=MonthlyIncome, color=JobRole)) +
+    geom_point(shape=1) +
+    scale_colour_hue(l=50) + 
+    geom_smooth(method=lm,   # linear regression lines
+                se=FALSE) +    # Don't add shaded confidence region
+    labs(title="Relationship between EnvironmentSatisfaction, MonthlyIncome, and JobRole")
+
+```
+
+### Miscleanious Data Insights
+Various informative relationships in the data. 
+```{r trends}
+cat("Overall Rate of Attrition   ", mean(job_data$Attrition)*100, "% \n\n" )
+cat("Median Monthly Income   ", median(job_data$MonthlyIncome), "\n\n" )
+cat("Median Distance From Home   ", mean(job_data$DistanceFromHome),  "\n\n" )
+cat("Median Job Satisfaction   ", median(job_data$JobSatisfaction), "\n\n" )
+
+ggplot(job_data_original, aes(x=YearsSinceLastPromotion, fill = Attrition))+ geom_histogram(binwidth = 1)+
+  labs(title= "Histogram of Number of Years Since Last Promotion")
+
+#ggplot(data=job_data_original, aes(x=BusinessTravel) )+
+#  geom_bar(mapping=aes( fill= Attrition)) +
+#  geom_text(stat='count',aes(label=..count..), position = position_stack(vjust=.5), vjust=-1) +
+#  labs(title= "Effects of Business Travel on Attrition")
+
+ggplot(data=job_data_original)+
+  geom_bar(mapping=aes(x= JobSatisfaction, y= MonthlyIncome , fill= Gender), 
+           stat="summary", fun.y="median") +
+           labs(title="Histogram of Median Monthly Income by Job Satisfaction")
+
+ggplot(job_data_original, aes(x=MonthlyIncome, fill = Attrition))+ geom_histogram(binwidth = 30) +
+  labs(title= "Histogram of Monthly Income")
+
+```
+
+### Correlation Heatmaps
+These heatmaps show the correlation between variables. The color palette is designed to help the colorblind. 
+```{r Heat Map Call}
+#AllVarMap = heatmap_builder(job_data, 
+#                            plot_header="All features No Transformation",
+#                            angled_text_size = 7,
+#                            coeff_text_size = 1.5)
+#print(AllVarMap)
+
+#onlyYLoggedMap = heatmap_builder(onlyYLogged,
+#                                 plot_header="X not Logged, Y (Attrition) Logged",
+#                                 angled_text_size=7,
+#                                 coeff_text_size=1.5 )
+#print(onlyYLoggedMap)
+
+#XandYLoggedMap = heatmap_builder(XandYLogged,
+#                                 plot_header="X Logged, Y (Attrition) Logged",
+#                                 angled_text_size=7,
+#                                 coeff_text_size=1.5 )
+#print(XandYLoggedMap)
+
+#All data Logged Except Attrition
+onlyXLoggedMap = heatmap_builder(onlyXLogged,
+                                 plot_header="Correlation between All Features",
+                                 angled_text_size=7,
+                                 coeff_text_size=1.5 )
+print(onlyXLoggedMap)
+
+#No transformation on data
+HighCorrMap = heatmap_builder(high_corr_features, 
+                              plot_header="High Correlation Features",
+                              angled_text_size=12,
+                              coeff_text_size=3)
+print(HighCorrMap)
+
+#All data Logged Except Attrition
+HighCorrelationAttritionMap = heatmap_builder(top_5_features_logged, 
+                              plot_header="Highest Overall Correlation with Attrition",
+                              angled_text_size=12,
+                              coeff_text_size=3)
+print(HighCorrelationAttritionMap)
+
+#All data Logged Except Attrition
+PosCorrelationAttritionMap = heatmap_builder(top_5_positive_logged, 
+                              plot_header="Most Negative Correlation with Attrition",
+                              angled_text_size=12,
+                              coeff_text_size=3)
+print(PosCorrelationAttritionMap)
+
+#All data Logged Except Attrition
+NegCorrelationAttritionMap = heatmap_builder(top_5_negative_logged, 
+                              plot_header="Most Positive Correlation with Attrition",
+                              angled_text_size=12,
+                              coeff_text_size=3)
+print(NegCorrelationAttritionMap)
+
+
+
+```
+
+### Scatter Plots for High Correlation Features
+
+```{r High Corr Scatter Plots}
+
+pairs(high_corr_features, 
+      lower.panel = panel.smooth,
+      upper.panel = panel.cor,
+      gap=0, 
+      row1attop=FALSE,
+      main='Correlation and Scatter Plot for Features with High Correlation (no log)')
+
+
+```
+
+### Highest Correlation with Attrition Scatter Plot
+
+```{r Attrition v. Overtime Scatter Plot}
+model = lm(Attrition ~ OverTime, data = job_data)
+#summary(model )## cor = 0.246118, r =  0.06057, p = 2.2e-16
+plot(job_data$OverTime, job_data$Attrition,
+     xlim =c(0, 1), ylim =c(0, 1),
+     ylab ="Attrition", 
+     xlab ="Overtime", 
+     main="Attrition v.s. Overtime Scatter Plot (untransformed data)")
+displaylm <-lm(Attrition ~OverTime, data = job_data)
+abline(displaylm, col="#67adef")
+```
+
+### Scatter Plots for Top features
+
+```{r Top features Scatter Plots}
+
+pairs(top_5_features, 
+      lower.panel = panel.smooth,
+      upper.panel = NULL,
+      gap=0, 
+      row1attop=FALSE,
+      main='Correlation and Scatter Plot for Top 5 Features (no transformation)')
+
+```
+
+### Correlation with Attrition 
+
+``` {r Logs Correlation with Attrition }
+#getTopNCorrelation(Attrition, job_data)
+#getTopNCorrelation(LogAttrition, onlyYLogged)
+#getTopNCorrelation(LogAttrition, XandYLogged)
+
+getTopNCorrelation(Attrition, onlyXLogged) 
+
+```
+
+## Modelling Data
+
+### Linear Model
+
+```{r Linear Model}
+
+traintestdata = splitdf(top_3_features_logged, train_size=0.7)
+trainset = traintestdata$trainset
+testset = traintestdata$testset
+
+top_features_lm = lm(Attrition ~ OverTime + YearsWithCurrManager + MonthlyIncome,
+                     data= trainset)
+
+#print(top_features_lm)
+print(summary(top_features_lm))
+
+predictions = predict(top_features_lm, testset)
+
+predictions = as.data.frame(predictions)
+
+predictions$binary = ifelse(predictions$predictions > 0.5, 1, 0)
+
+#mean square prediction error
+mspe = mean((testset$Attrition - (predictions$binary + 0.000001) ^ 2))
+percenterror= mean(abs(testset$Attrition - (predictions$binary + 0.000001)))*100
+
+cat("\nPercent Error  ", percenterror, "\n")
+cat("\nMean Square Prediction Error  ", mspe)
+```
+
+
+
+
+
+
