@@ -7,7 +7,7 @@ output:
     toc: true    
     theme: united 
 params: 
-  path: 'Analysis/CaseStudy2-data.xlsx'
+  path: 'Analysis/Data/CaseStudy2-data.xlsx'
   echo: True
 ---
 
