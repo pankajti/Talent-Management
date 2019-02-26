@@ -1,6 +1,6 @@
 # Talent-Management
 
-This is an analysis of Money Corps employee data for DDSAnalytics by Redwood Group. 
+This is an analysis of Money Corp employee data for DDSAnalytics by Redwood Group. 
 
 The repository contains the following files:
     
